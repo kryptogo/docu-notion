@@ -28,7 +28,7 @@ export type Options = {
 };
 
 let options: Options;
-let currentSidebarPosition = 0;
+// let currentSidebarPosition = 0;
 let layoutStrategy: LayoutStrategy;
 let notionToMarkdown: NotionToMarkdown;
 const pages = new Array<NotionPage>();
@@ -171,7 +171,7 @@ async function outputPage(page: NotionPage) {
   );
   logDebug("pull", JSON.stringify(blocks));
 
-  currentSidebarPosition++;
+  // currentSidebarPosition++;
 
   // we have to set this one up for each page because we need to
   // give it two extra parameters that are context for each page
@@ -186,26 +186,22 @@ async function outputPage(page: NotionPage) {
   );
   const mdBlocks = await notionToMarkdown.blocksToMarkdown(blocks);
 
-  // if (page.nameOrTitle.startsWith("Embed")) {
-  //   console.log(JSON.stringify(blocks, null, 2));
-  //   console.log(JSON.stringify(mdBlocks, null, 2));
-  // }
-  let frontmatter = "---\n";
-  frontmatter += `title: ${page.nameOrTitle.replaceAll(":", "&#58;")}\n`; // markdown can't handle the ":" here
-  frontmatter += `sidebar_position: ${currentSidebarPosition}\n`;
-  frontmatter += `slug: ${page.slug ?? ""}\n`;
-  if (page.keywords) frontmatter += `keywords: [${page.keywords}]\n`;
-
-  frontmatter += "---\n";
+  // let frontmatter = "---\n";
+  // frontmatter += `title: ${page.nameOrTitle.replaceAll(":", "&#58;")}\n`; // markdown can't handle the ":" here
+  // frontmatter += `sidebar_position: ${currentSidebarPosition}\n`;
+  // frontmatter += `slug: ${page.slug ?? ""}\n`;
+  // if (page.keywords) frontmatter += `keywords: [${page.keywords}]\n`;
+  // frontmatter += "---\n";
 
   let markdown = notionToMarkdown.toMarkdownString(mdBlocks);
 
   // Improve: maybe this could be another markdown-to-md "custom transformer"
-  markdown = convertInternalLinks(markdown, pages, layoutStrategy);
+  markdown = await convertInternalLinks(markdown, pages, layoutStrategy);
 
   // Improve: maybe this could be another markdown-to-md "custom transformer"
   const { body, imports } = tweakForDocusaurus(markdown);
-  const output = `${frontmatter}\n${imports}\n${body}`;
+  // const output = `${frontmatter}\n${imports}\n${body}`;
+  const output = `${imports}\n${body}`;
 
   fs.writeFileSync(mdPath, output, {});
 }

@@ -19,7 +19,8 @@ export class HierarchicalNamedLayoutStrategy extends LayoutStrategy {
     context: string,
     levelLabel: string
   ): string {
-    const path = context + "/" + sanitize(levelLabel).replaceAll(" ", "-");
+    const path =
+      context + "/" + sanitize(levelLabel).replaceAll(" ", "-").toLowerCase();
 
     //console.log("Creating level " + path);
     fs.mkdirSync(dirRoot + "/" + path, { recursive: true });
@@ -32,13 +33,14 @@ export class HierarchicalNamedLayoutStrategy extends LayoutStrategy {
       "/" +
       page.context +
       "/" +
-      sanitize(page.nameOrTitle) +
+      sanitize(page.nameOrTitle).toLowerCase() +
       extensionWithDot;
 
     path = path
       .replaceAll("//", "/")
       .replaceAll("%20", "-")
-      .replaceAll(" ", "-");
+      .replaceAll(" ", "-")
+      .replaceAll("'", "");
     // console.log(
     //   `getPathForPage(${context}, ${pageId}, ${title}) with  root ${this.rootDirectory} --> ${path}`
     // );

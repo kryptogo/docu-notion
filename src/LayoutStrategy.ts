@@ -32,9 +32,12 @@ export abstract class LayoutStrategy {
     extensionWithDot: string
   ): string;
 
-  public getLinkPathForPage(page: NotionPage): string {
-    // the url we return starts with a "/", meaning it is relative to the root of the markdown root (e.g. /docs root in Docusaurus)
-    return this.getPathForPage(page, "").replace(this.rootDirectory, "");
+  public getLinkPathForPage(page: NotionPage, relativeToDocs = true): string {
+    // relativeToDocs is true meaning it is relative to the root of the markdown root (e.g. /docs root in Docusaurus)
+    return `${relativeToDocs ? "" : "/docs"}${this.getPathForPage(
+      page,
+      ""
+    ).replace(this.rootDirectory, "")}`;
   }
 
   public pageWasSeen(page: NotionPage): void {

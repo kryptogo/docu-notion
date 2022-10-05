@@ -103,9 +103,12 @@ export class NotionPage {
   public get slug(): string {
     const explicitSlug = this.getPlainTextProperty("Slug", "");
     if (explicitSlug) return explicitSlug;
-    return encodeURIComponent(this.nameOrTitle.replaceAll(" ", "-"))
+    return encodeURIComponent(
+      this.nameOrTitle.replaceAll(" ", "-").toLowerCase()
+    )
       .replaceAll("%3A", "-")
-      .replaceAll("--", "-");
+      .replaceAll("--", "-")
+      .replaceAll("'", "");
   }
   public get keywords(): string | undefined {
     return this.getPlainTextProperty("Keywords", "");
@@ -211,6 +214,14 @@ export class NotionPage {
       start_cursor = response?.next_cursor;
     } while (start_cursor != null);
     return overallResult;
+  }
+
+  public async getBlockContent(blockId: string): Promise<any> {
+    await rateLimit();
+    const result = await notionClient.pages.retrieve({
+      page_id: blockId,
+    });
+    return result;
   }
 
   public async getContentInfo(): Promise<{

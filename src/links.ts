@@ -2,20 +2,40 @@ import { LayoutStrategy } from "./LayoutStrategy";
 import { error, verbose, warning } from "./log";
 import { NotionPage } from "./NotionPage";
 
-export function convertInternalLinks(
+export async function convertInternalLinks(
   markdown: string,
   pages: NotionPage[],
   layoutStrategy: LayoutStrategy
-): string {
-  const convertHref = (url: string) => {
+): Promise<string> {
+  const convertHref = async (url: string) => {
+    const pageId = url.split("#")[0];
+    const blockId = url.indexOf("#") > -1 ? url.split("#")[1] : undefined;
     const p = pages.find(p => {
-      return p.matchesLinkId(url);
+      return p.matchesLinkId(pageId);
     });
     if (p) {
-      verbose(
-        `Converting Link ${url} --> ${layoutStrategy.getLinkPathForPage(p)}`
-      );
-      return layoutStrategy.getLinkPathForPage(p);
+      // handle link to page
+      if (!blockId) {
+        const convertedLink = layoutStrategy.getLinkPathForPage(p, false);
+        verbose(`Converting Link ${url} --> ${convertedLink}`);
+        return convertedLink;
+      }
+
+      // handle link to a block within page. Check if the block exists first
+      const children = (await p.getBlockChildren()).results;
+      const block = children.find(c => c.id.replaceAll("-", "") === blockId);
+      if (block && (block as any).type.startsWith("heading")) {
+        // only convert if the block is a heading
+        const blockText = (block as any)[(block as any).type].rich_text[0]
+          .plain_text as string;
+        const section = blockText.toLowerCase().replace(/ /g, "-");
+        const convertedLink = `${layoutStrategy.getLinkPathForPage(
+          p,
+          false
+        )}#${section}`;
+        verbose(`Converting Link ${url} --> ${convertedLink}`);
+        return convertedLink;
+      }
     }
 
     // About this situation. See https://github.com/sillsdev/docu-notion/issues/9
@@ -68,9 +88,9 @@ export function convertInternalLinks(
 //     });
 // }
 
-function transformLinks(
+async function transformLinks(
   pageMarkdown: string,
-  convertHref: (url: string) => string,
+  convertHref: (url: string) => Promise<string>,
   convertLinkText: (text: string, url: string) => string
 ) {
   // Note: from notion (or notion-md?) we get slightly different hrefs depending on whether the links is "inline"
@@ -89,7 +109,7 @@ function transformLinks(
 
     const hrefFromNotion = match[2];
     const text = convertLinkText(match[1] || "", hrefFromNotion);
-    const hrefForDocusaurus = convertHref(hrefFromNotion);
+    const hrefForDocusaurus = await convertHref(hrefFromNotion);
 
     if (hrefForDocusaurus) {
       output = output.replace(string, `[${text}](${hrefForDocusaurus})`);

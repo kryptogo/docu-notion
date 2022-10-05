@@ -7,6 +7,7 @@ import {
   ListBlockChildrenResponseResults,
 } from "notion-to-md/build/types";
 import { notionCalloutToAdmonition } from "./CalloutTransformer";
+import { notionCodeToMarkdown } from "./CodeTransformer";
 
 export function setupCustomTransformers(
   notionToMarkdown: NotionToMarkdown,
@@ -88,6 +89,11 @@ export function setupCustomTransformers(
     "callout",
     (block: ListBlockChildrenResponseResult) =>
       notionCalloutToAdmonition(notionToMarkdown, notionClient, block)
+  );
+
+  notionToMarkdown.setCustomTransformer(
+    "code",
+    (block: ListBlockChildrenResponseResult) => notionCodeToMarkdown(block)
   );
 
   // Note: Pull.ts also adds an image transformer, but has to do that for each
