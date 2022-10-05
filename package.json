@@ -22,13 +22,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sillsdev/docu-notion.git"
+    "url": "git+https://github.com/kryptogo/docu-notion.git"
   },
   "license": "MIT",
   "author": {
     "name": "SIL Language Software Development",
-    "email": "sillsdev@users.noreply.github.com",
-    "url": "https://github.com/sillsdev"
+    "email": "contact@kryptogo.com",
+    "url": "https://github.com/kryptogo"
   },
   "engines": {
     "node": ">=12.0"
@@ -39,9 +39,9 @@
     "markdown"
   ],
   "bugs": {
-    "url": "https://github.com/sillsdev/docu-notion/issues"
+    "url": "https://github.com/kryptogo/docu-notion/issues"
   },
-  "homepage": "https://github.com/sillsdev/docu-notion#readme",
+  "homepage": "https://github.com/kryptogo/docu-notion#readme",
   "//file-type": "have to use this version before they switched to ESM, which gives a compile error related to require()",
   "//node-fetch@2.6.6file-type": "have to use this version before they switched to ESM, which gives a compile error related to require()",
   "//chalk@4": "also ESM related problem",
