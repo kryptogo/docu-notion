@@ -1,5 +1,5 @@
 {
-  "name": "docu-notion",
+  "name": "@kryptogo/docu-notion",
   "version": "0.0.1",
   "description": "Download Notion pages as markdown and image files, preserving hierarchy and enabling workflow properties. Works with Docusaurus.",
   "main": "./dist/index.js",
