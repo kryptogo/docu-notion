@@ -2,11 +2,11 @@ import { LayoutStrategy } from "./LayoutStrategy";
 import { error, verbose, warning } from "./log";
 import { NotionPage } from "./NotionPage";
 
-export async function convertInternalLinks(
-  markdown: string,
+export function getConvertHref(
   pages: NotionPage[],
-  layoutStrategy: LayoutStrategy
-): Promise<string> {
+  layoutStrategy: LayoutStrategy,
+  linkRelativeToDocs: boolean
+): (url: string) => Promise<string> {
   const convertHref = async (url: string) => {
     const pageId = url.split("#")[0];
     const blockId = url.indexOf("#") > -1 ? url.split("#")[1] : undefined;
@@ -16,7 +16,10 @@ export async function convertInternalLinks(
     if (p) {
       // handle link to page
       if (!blockId) {
-        const convertedLink = layoutStrategy.getLinkPathForPage(p, false);
+        const convertedLink = layoutStrategy.getLinkPathForPage(
+          p,
+          linkRelativeToDocs
+        );
         verbose(`Converting Link ${url} --> ${convertedLink}`);
         return convertedLink;
       }
@@ -31,7 +34,7 @@ export async function convertInternalLinks(
         const section = blockText.toLowerCase().replace(/ /g, "-");
         const convertedLink = `${layoutStrategy.getLinkPathForPage(
           p,
-          false
+          linkRelativeToDocs
         )}#${section}`;
         verbose(`Converting Link ${url} --> ${convertedLink}`);
         return convertedLink;
@@ -45,6 +48,15 @@ export async function convertInternalLinks(
 
     return url;
   };
+  return convertHref;
+}
+
+export async function convertInternalLinks(
+  markdown: string,
+  pages: NotionPage[],
+  layoutStrategy: LayoutStrategy
+): Promise<string> {
+  const convertHref = getConvertHref(pages, layoutStrategy, false);
   const convertLinkText = (text: string, url: string) => {
     // In Notion, if you just add a link to a page without linking it to any text, then in Notion
     // you see the name of the page as the text of the link. But when Notion gives us that same

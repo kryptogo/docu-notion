@@ -255,6 +255,16 @@ async function getPageMetadata(id: string): Promise<GetPageResponse> {
   });
 }
 
+export async function getBlockChildren(
+  id: string
+): Promise<ListBlockChildrenResponse> {
+  await rateLimit();
+
+  return await notionClient.blocks.children.list({
+    block_id: id,
+  });
+}
+
 async function rateLimit() {
   if (notionLimiter.getTokensRemaining() < 1) {
     logDebug("", "*** delaying for rate limit");

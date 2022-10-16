@@ -1,9 +1,13 @@
 import * as fs from "fs-extra";
-
 import { NotionToMarkdown } from "notion-to-md";
 import { HierarchicalNamedLayoutStrategy } from "./HierarchicalNamedLayoutStrategy";
 import { LayoutStrategy } from "./LayoutStrategy";
-import { initNotionClient, NotionPage, PageType } from "./NotionPage";
+import {
+  initNotionClient,
+  NotionPage,
+  PageType,
+  getBlockChildren,
+} from "./NotionPage";
 import {
   initImageHandling,
   cleanupOldImages,
@@ -14,7 +18,7 @@ import { tweakForDocusaurus } from "./DocusaurusTweaks";
 import { setupCustomTransformers } from "./CustomTranformers";
 import * as Path from "path";
 import { error, info, logDebug, verbose, warning } from "./log";
-import { convertInternalLinks } from "./links";
+import { convertInternalLinks, getConvertHref } from "./links";
 import { ListBlockChildrenResponseResult } from "notion-to-md/build/types";
 
 export type Options = {
@@ -32,6 +36,8 @@ let options: Options;
 let layoutStrategy: LayoutStrategy;
 let notionToMarkdown: NotionToMarkdown;
 const pages = new Array<NotionPage>();
+let navbarPageId: string;
+let sidebarPageId: string;
 
 export async function notionPull(incomingOptions: Options): Promise<void> {
   options = incomingOptions;
@@ -69,15 +75,126 @@ export async function notionPull(incomingOptions: Options): Promise<void> {
   // figured out what their eventual relative url will be.
   await getPagesRecursively("", options.rootPage, true);
   logDebug("getPagesRecursively", JSON.stringify(pages, null, 2));
-  await outputPages(pages);
+  await outputPages();
+  await outputNavbar();
   await layoutStrategy.cleanupOldFiles();
   await cleanupOldImages();
 }
 
-async function outputPages(pages: Array<NotionPage>) {
+async function outputPages() {
   for (const page of pages) {
     await outputPage(page);
   }
+}
+
+async function outputNavbar() {
+  if (!navbarPageId) {
+    warning("No navbar page found");
+    return;
+  }
+  const nestedPages = await parseToggleNestedPages(navbarPageId);
+  const convertHref = getConvertHref(pages, layoutStrategy, true);
+  const outputNavbarConfig = await nestedPagesToNavbarConfig(
+    nestedPages,
+    convertHref
+  );
+  console.log(
+    "[outputNavbar] outputSidebarConfig:",
+    JSON.stringify(outputNavbarConfig, null, 2)
+  );
+}
+
+async function parseToggleNestedPages(id: string): Promise<any[]> {
+  const blockChildren = await getBlockChildren(id);
+  const results = [];
+  for (const block of blockChildren.results) {
+    const b = block as any;
+    if (
+      b.type !== "toggle" &&
+      b.type !== "link_to_page" &&
+      b.type !== "paragraph"
+    ) {
+      warning(
+        `parseToggleNestedPages: unsupported block type "${b.type as string}".`
+      );
+      return [];
+    }
+
+    if (b.type === "paragraph") {
+      // recursive end condition
+      results.push({
+        type: "text",
+        text: b.paragraph.rich_text[0].plain_text,
+      });
+      continue;
+    }
+    if (b.type === "link_to_page") {
+      // recursive end condition
+      results.push({
+        type: "link",
+        id: b.link_to_page.page_id,
+      });
+      continue;
+    }
+
+    // process toggle block
+    const label = b.toggle.rich_text[0].plain_text;
+    if (!label) {
+      warning(`parseToggleNestedPages: no label for block in the navbar page.`);
+      return [];
+    }
+    results.push({
+      type: "toggle",
+      label,
+      children: await parseToggleNestedPages(b.id),
+    });
+  }
+  return results;
+}
+
+async function nestedPagesToNavbarConfig(
+  nestedPages: any,
+  convertHref: (url: string) => Promise<string>,
+  isRoot = true
+): Promise<any[]> {
+  const results: any[] = [];
+  for (const item of nestedPages) {
+    if (item.type !== "toggle") {
+      warning(
+        `nestedPagesToNavbarConfig: unsupported item type "${
+          item.type as string
+        }".`
+      );
+      return [];
+    }
+    if (!isRoot) {
+      // limit the depth of the navbar to 2
+      const child = item.children[0];
+      results.push({
+        label: item.label,
+        to: child.type === "link" ? await convertHref(child.id) : child.text,
+      });
+      continue;
+    }
+    const result: any = {
+      label: item.label,
+      position: "left",
+    };
+    if (item.children[0].type !== "toggle") {
+      const child = item.children[0];
+      result.to =
+        child.type === "link" ? await convertHref(child.id) : child.text;
+    } else {
+      result.items = await nestedPagesToNavbarConfig(
+        item.children,
+        convertHref,
+        false
+      );
+    }
+    results.push(result);
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return results;
 }
 
 // This walks the "Outline" page and creates a list of all the nodes that will
@@ -137,6 +254,11 @@ async function getPagesRecursively(
     for (const id of pageInfo.linksPages) {
       pages.push(await NotionPage.fromPageId(context, id));
     }
+  } else if (pageInTheOutline.nameOrTitle === "Navbar") {
+    // Process data for navbar
+    navbarPageId = pageId;
+  } else if (pageInTheOutline.nameOrTitle === "Sidebar") {
+    sidebarPageId = pageId;
   } else {
     console.info(
       warning(
