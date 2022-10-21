@@ -106,6 +106,8 @@ export class NotionPage {
     return encodeURIComponent(
       this.nameOrTitle.replaceAll(" ", "-").toLowerCase()
     )
+      .replaceAll("(", "")
+      .replaceAll(")", "")
       .replaceAll("%3A", "-")
       .replaceAll("--", "-")
       .replaceAll("'", "");
