@@ -8,6 +8,7 @@ import {
 } from "notion-to-md/build/types";
 import { notionCalloutToAdmonition } from "./CalloutTransformer";
 import { notionCodeToMarkdown } from "./CodeTransformer";
+import { numberedListTransformer } from "./NumberedListTransforer";
 
 export function setupCustomTransformers(
   notionToMarkdown: NotionToMarkdown,
@@ -94,6 +95,11 @@ export function setupCustomTransformers(
   notionToMarkdown.setCustomTransformer(
     "code",
     (block: ListBlockChildrenResponseResult) => notionCodeToMarkdown(block)
+  );
+  notionToMarkdown.setCustomTransformer(
+    "numbered_list_item",
+    (block: ListBlockChildrenResponseResult) =>
+      numberedListTransformer(notionToMarkdown, notionClient, block)
   );
 
   // Note: Pull.ts also adds an image transformer, but has to do that for each
